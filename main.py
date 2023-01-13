@@ -13,7 +13,7 @@ USER_ID = os.getenv("SPOTIFY_USER_ID")
 # quick and poorly designed script thing
 class MySpotifyClient:
     def __init__(self, user_id):
-        # use this if you only need readonly access
+        # use this if you only need read access
         # self.sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials())
 
         # use oauth if need to make write access (like creating a playlist)
@@ -55,15 +55,17 @@ class MySpotifyClient:
         return playlists_dict
 
     # TODO: use multithreading make this async tho idk if it'll trigger rate limits
+    # TODO: instead of taking from all user playlists, make it such that you can
+    # specify a playlist or list of playlists 
     def retrieve_and_write_playlist_songs_and_features(self, use_cache=True):
-        songs_dict = dict()
         if os.path.isfile(self.songs_and_features_fp) and use_cache:
             with open(self.songs_and_features_fp, "r") as f:
                 songs_list = json.load(f)
         else:
             playlists_dict = self.retrieve_and_write_playlist_data(use_cache)
+            songs_dict = dict()
 
-            # this make take some time, esp if you are me and have almost 200 playlists
+            # this make take some time if you are like me and have 200 playlists
             for name, playlist_id in playlists_dict.items():
                 print(f"writing songs for playlist '{name}'...")
                 tracks = self.sp.user_playlist_tracks(self.user_id, playlist_id)
@@ -103,18 +105,15 @@ class MySpotifyClient:
     def _split_into_data_chunks(self, data: List, chunk_size: int):
         return [data[x : x + chunk_size] for x in range(0, len(data), chunk_size)]
 
-    # you can change this
-    # use https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features 
-    # to see which features you can play with
-    def running_songs(self, features):
-        # my running songs!
+    # default condition
+    def jogging_songs(self, features):
         return (
             82 < features["tempo"] < 85 or 82 * 2 < features["tempo"] < 85 * 2
         ) and features["energy"] > 0.5
 
     def create_playlist(
         self,
-        condition=running_songs,
+        condition=jogging_songs,
         playlist_name="New Playlist",
         use_cache=True,
     ):
@@ -151,7 +150,11 @@ class MySpotifyClient:
 # TODO: make a cli interface for this
 if __name__ == "__main__":
     client = MySpotifyClient(USER_ID)
+    # TODO: stateful and messy, change this later
     client.retrieve_and_write_playlist_songs_and_features()
+
+    # use https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features 
+    # to see which features you can play with
 
     client.create_playlist(playlist_name="running-songs", condition=client.running_songs)
     # client.create_playlist(playlist_name="high-energy", condition=lambda features: features["energy"] > 0.95)
