@@ -112,10 +112,10 @@ class MySpotifyClient:
             82 < features["tempo"] < 85 or 82 * 2 < features["tempo"] < 85 * 2
         ) and features["energy"] > 0.5
 
-    def create_playlist_based_on_condition(
+    def create_playlist(
         self,
         condition=running_songs,
-        new_playlist_name="New Playlist",
+        playlist_name="New Playlist",
         use_cache=True,
     ):
         if os.path.isfile(self.songs_and_features_fp) and use_cache:
@@ -135,11 +135,11 @@ class MySpotifyClient:
 
         assert songs_to_add, "no songs to add into playlist"
         print(
-            f"found {len(songs_to_add)} songs to add into your new {new_playlist_name} playlist!"
+            f"found {len(songs_to_add)} songs to add into your new {playlist_name} playlist!"
         )
 
         created_playlist_id = self.sp.user_playlist_create(
-            self.user_id, new_playlist_name
+            self.user_id, playlist_name
         )["id"]
         chunks = self._split_into_data_chunks(songs_to_add, chunk_size=100)
         for chunk in chunks:
@@ -153,14 +153,14 @@ if __name__ == "__main__":
     client = MySpotifyClient(USER_ID)
     client.retrieve_and_write_playlist_songs_and_features()
 
-    client.create_playlist_based_on_condition(new_playlist_name="running-songs", condition=client.running_songs)
-    # client.create_playlist_based_on_condition(new_playlist_name="high-energy", condition=lambda features: features["energy"] > 0.95)
-    # client.create_playlist_based_on_condition(new_playlist_name="apparently-happy", condition=lambda features: features["valence"] > 0.9)
-    # client.create_playlist_based_on_condition(new_playlist_name="apparently-sad", condition=lambda features: features["valence"] < 0.1)
-    # client.create_playlist_based_on_condition(new_playlist_name="apparently-danceable", condition=lambda features: features["danceability"] > 0.9)
-    # client.create_playlist_based_on_condition(new_playlist_name="apparently-acoustic", condition=lambda features: features["acousticness"] > 0.9)
-    # client.create_playlist_based_on_condition(new_playlist_name="in-the-key-of-c", condition=lambda features: features["key"] == 0)
-    # client.create_playlist_based_on_condition(new_playlist_name="in-the-key-of-g", condition=lambda features: features["key"] == 7)
-    # client.create_playlist_based_on_condition(new_playlist_name="minor-songs", condition=lambda features: features["mode"] == 0)
+    client.create_playlist(playlist_name="running-songs", condition=client.running_songs)
+    # client.create_playlist(playlist_name="high-energy", condition=lambda features: features["energy"] > 0.95)
+    # client.create_playlist(playlist_name="apparently-happy", condition=lambda features: features["valence"] > 0.9)
+    # client.create_playlist(playlist_name="apparently-sad", condition=lambda features: features["valence"] < 0.1)
+    # client.create_playlist(playlist_name="apparently-danceable", condition=lambda features: features["danceability"] > 0.9)
+    # client.create_playlist(playlist_name="apparently-acoustic", condition=lambda features: features["acousticness"] > 0.9)
+    # client.create_playlist(playlist_name="in-the-key-of-c", condition=lambda features: features["key"] == 0)
+    # client.create_playlist(playlist_name="in-the-key-of-g", condition=lambda features: features["key"] == 7)
+    # client.create_playlist(playlist_name="minor-songs", condition=lambda features: features["mode"] == 0)
 
 
