@@ -2,6 +2,7 @@ import spotipy
 from dotenv import load_dotenv
 from typing import List
 import os
+import random
 import json
 
 load_dotenv()
@@ -24,6 +25,7 @@ class MySpotifyClient:
                 client_secret=SPOTIPY_CLIENT_SECRET,
                 redirect_uri="http://localhost/",  # must add to whitelist on your dev dashboard
                 scope="playlist-modify-public",
+                open_browser=False
             )
         )
         self.user_id = user_id
@@ -56,7 +58,7 @@ class MySpotifyClient:
 
     # TODO: use multithreading make this async tho idk if it'll trigger rate limits
     # TODO: instead of taking from all user playlists, make it such that you can
-    # specify a playlist or list of playlists 
+    # specify a playlist or list of playlists
     def retrieve_and_write_playlist_songs_and_features(self, use_cache=True):
         if os.path.isfile(self.songs_and_features_fp) and use_cache:
             with open(self.songs_and_features_fp, "r") as f:
@@ -109,11 +111,11 @@ class MySpotifyClient:
     def jogging_songs(self, features):
         return (
             82 < features["tempo"] < 85 or 82 * 2 < features["tempo"] < 85 * 2
-        ) and features["energy"] > 0.5
+        ) and features["energy"] > 0.7 and features["valence"] > 0.4
 
     def create_playlist(
         self,
-        condition=jogging_songs,
+        condition,
         playlist_name="New Playlist",
         use_cache=True,
     ):
@@ -125,10 +127,11 @@ class MySpotifyClient:
 
         songs_to_add = []
         for song in songs:
-            features = song["features"]
-            if condition(features):
+            f = song["features"]
+            if condition(f):
+                preamble = f"added: '{song['song_name']}' by {song['primary_song_artist']}"
                 print(
-                    f"added: '{song['song_name']}' by {song['primary_song_artist']} - energy {features['energy']} - bpm {features['tempo']}"
+                    f"{preamble:<80} | bpm={f['tempo']} energy={f['energy']} valence={f['valence']}"
                 )
                 songs_to_add.append(song["song_id"])
 
@@ -136,6 +139,9 @@ class MySpotifyClient:
         print(
             f"found {len(songs_to_add)} songs to add into your new {playlist_name} playlist!"
         )
+
+        # who doesn't love a lil bit of randomness
+        random.shuffle(songs_to_add)
 
         created_playlist_id = self.sp.user_playlist_create(
             self.user_id, playlist_name
@@ -153,17 +159,16 @@ if __name__ == "__main__":
     # TODO: stateful and messy, change this later
     client.retrieve_and_write_playlist_songs_and_features()
 
-    # use https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features 
+    # use https://developer.spotify.com/documentation/web-api/reference/#/operations/get-audio-features
     # to see which features you can play with
 
-    client.create_playlist(playlist_name="running-songs", condition=client.running_songs)
-    # client.create_playlist(playlist_name="high-energy", condition=lambda features: features["energy"] > 0.95)
+    # client.create_playlist(playlist_name="autogen_high_valence_high_energy", condition=lambda f: f["valence"] > 0.8 and f["energy"] > 0.8)
+    # client.create_playlist(playlist_name="autogen_jogging_songs", condition=lambda f: client.jogging_songs(f))
+    # client.create_playlist(playlist_name="autogen_live", condition=lambda features: features["liveness"] > 0.8)
     # client.create_playlist(playlist_name="apparently-happy", condition=lambda features: features["valence"] > 0.9)
     # client.create_playlist(playlist_name="apparently-sad", condition=lambda features: features["valence"] < 0.1)
-    # client.create_playlist(playlist_name="apparently-danceable", condition=lambda features: features["danceability"] > 0.9)
+    # client.create_playlist(playlist_name="apparently-danceable", condition=lambda features: features["danceability"] > 0.8 and features["energy"] > 0.8 and features["valence"] > 0.8)
     # client.create_playlist(playlist_name="apparently-acoustic", condition=lambda features: features["acousticness"] > 0.9)
     # client.create_playlist(playlist_name="in-the-key-of-c", condition=lambda features: features["key"] == 0)
     # client.create_playlist(playlist_name="in-the-key-of-g", condition=lambda features: features["key"] == 7)
-    # client.create_playlist(playlist_name="minor-songs", condition=lambda features: features["mode"] == 0)
-
-
+    client.create_playlist(playlist_name="minor-songs", condition=lambda features: features["mode"] == 0)
